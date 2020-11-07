@@ -18,7 +18,9 @@ export interface Microponto {
   raio_marcacao: number,
   nome: string,
   descricao: string,
-  visitado?: boolean
+  visitado?: boolean,
+  circuito?: string,
+  id?: number
 }
 
 export interface Macroponto {

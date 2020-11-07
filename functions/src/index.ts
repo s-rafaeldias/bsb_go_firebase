@@ -5,9 +5,7 @@ import * as models from './models';
 
 admin.initializeApp();
 
-
 export const addNewUserToFirebase = functions.auth.user().onCreate((user) => {
-  // O nome padrao vai ser o handler do email do usuario
   const defaultName = user.displayName || user.email?.split("@")[0] || "defaultName"
 
   const newUser: models.User = {
@@ -15,17 +13,15 @@ export const addNewUserToFirebase = functions.auth.user().onCreate((user) => {
     pontuacao: 0
   }
 
-  return admin.firestore()
-    .collection("usuarios")
-    .doc(user.uid)
-    .set(newUser);
+  return admin.firestore().doc(`usuarios/${user.uid}`).set(newUser);
 });
 
-export const addCircuitToUser = functions.https.onRequest(async (req, res) => {
-  const userId = req.body.user_id as string;
-  const circuitId = req.body.circuit as string;
 
+export const addCircuitToUser = functions.https.onRequest(async (req, res) => {
   try {
+    const userId = req.body.user_id as string;
+    const circuitId = req.body.circuit as string;
+
     // Busca o circuito a ser adicionado
     const circuitSnapshot = await admin.firestore().doc(`circuitos/${circuitId}`).get();
     const circuitToAdd = circuitSnapshot.data() as models.Circuit;
@@ -60,20 +56,20 @@ export const addCircuitToUser = functions.https.onRequest(async (req, res) => {
       micropontos_restantes: micropontos
     });
 
-    res.status(200);
+    res.status(200).send("Ok");
   }
   catch (error) {
     console.log(error);
-    res.status(500).send("deu ruim")
+    res.status(500).send("Deu ruim")
   }
+
 });
+
 
 export const getAllCircuits = functions.https.onRequest((_req, res) => {
   const circuits: models.Circuit[] = [];
 
-  admin.firestore()
-    .collection("circuitos")
-    .get()
+  admin.firestore().collection("circuitos").get()
     .then((snap) => {
       snap.forEach((doc) => {
         const data = doc.data();
@@ -98,24 +94,32 @@ export const getAllCircuits = functions.https.onRequest((_req, res) => {
 });
 
 
-export const getGeopointsForUser = functions.https.onRequest((req, res) => {
-  // busca o id do usuario no body da call
-  const userId = req.body.id
+export const getGeopointsForUser = functions.https.onRequest(async (req, res) => {
+  const userId = req.body.user_id as string;
 
-  admin.firestore()
-    .collection("usuarios")
-    .doc(`${userId}/circuitos_andamento/torre_tv`)
-    .get()
-    .then((data) => {
-      const values = data.data();
-      console.log(values);
-      res.status(200).send(`Ola ${userId}`);
-    })
-    .catch((error) => {
-      console.log(error);
-      return res.status(400).send(error);
-    })
+  try {
+    const circuits = await admin.firestore().collection(`usuarios/${userId}/circuitos_andamento`).get();
 
+    let micropontos: models.Microponto[] = [];
+    circuits.docs.forEach(doc => {
+      let data = doc.data().micropontos_restantes as models.Microponto[]
+      data = data.map((mp, index) => {
+        mp.circuito = doc.id;
+        mp.id = index;
+        return mp;
+      });
+
+      micropontos = micropontos.concat(data);
+    });
+
+    res.status(200).send(micropontos);
+  } catch (error) {
+    console.log(error);
+    res.status(400).send();
+  }
 });
 
 
+export const checkPointAsVisited = functions.https.onRequest(async (req, res) => {
+
+});
