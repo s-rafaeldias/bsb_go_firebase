@@ -120,6 +120,31 @@ export const getGeopointsForUser = functions.https.onRequest(async (req, res) =>
 });
 
 
-export const checkPointAsVisited = functions.https.onRequest(async (req, res) => {
+// export const checkPointAsVisited = functions.https.onRequest(async (req, res) => {
+
+// });
+
+
+export const getUserRanking = functions.https.onRequest(async (req, res) => {
+
+  let users: models.User[] = [];
+  admin.firestore().collection("usuarios")
+    .where("pontuacao", ">", 0).orderBy("pontuacao", "desc")
+    .get()
+  .then(snap => {
+    snap.forEach(doc => {
+      let user: models.User = {
+        nome: doc.data().nome,
+        pontuacao: doc.data().pontuacao,
+      }
+      users = users.concat(user);
+    });
+
+    res.status(200).send(users);
+  })
+  .catch(error => {
+    console.log(error);
+    res.status(400).send();
+  });
 
 });
