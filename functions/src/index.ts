@@ -190,6 +190,7 @@ export const getCircuitsForUser = functions.https.onRequest(async (req, res) => 
     let dataToSend: models.Circuit[] = [];
     circuits.docs.forEach(doc => {
       const data = doc.data() as models.Circuit;
+      data.id = doc.id;
       dataToSend = dataToSend.concat(data);
     })
 
