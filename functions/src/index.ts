@@ -19,6 +19,12 @@ export const addNewUserToFirebase = functions.auth.user().onCreate((user) => {
 
 export const addCircuitToUser = functions.https.onRequest(async (req, res) => {
   try {
+    /*
+    {
+      "user_id": "asdald",
+      "circuit": "centro_bsb"
+    }
+    */
     const userId = req.body.user_id as string;
     const circuitId = req.body.circuit as string;
 
@@ -94,11 +100,15 @@ export const getAllCircuits = functions.https.onRequest((_req, res) => {
 });
 
 
+// TODO: filtrar micropontos visitados
 export const getGeopointsForUser = functions.https.onRequest(async (req, res) => {
   const userId = req.body.user_id as string;
 
   try {
-    const circuits = await admin.firestore().collection(`usuarios/${userId}/circuitos_andamento`).get();
+    const circuits = await admin.firestore()
+      .collection(`usuarios/${userId}/circuitos_andamento`)
+      .where("circuito_finalizado", "==", false)
+      .get();
 
     let micropontos: models.Microponto[] = [];
     circuits.docs.forEach(doc => {
@@ -120,14 +130,32 @@ export const getGeopointsForUser = functions.https.onRequest(async (req, res) =>
 });
 
 
-// export const checkPointAsVisited = functions.https.onRequest(async (req, res) => {
+export const checkPointAsVisited = functions.https.onRequest(async (req, res) => {
+  const circuitId = req.body.circuito as string;
+  const mpId = req.body.id as number;
+  const userId = req.body.user_id as string;
 
-// });
+  try {
+    const docPath = `usuarios/${userId}/circuitos_andamento/${circuitId}`;
+    const snap = await admin.firestore().doc(docPath).get();
+    const data = snap.data() as models.CircuitInProgress;
+
+    data.micropontos_restantes[mpId].visitado = true;
+
+    await admin.firestore().doc(docPath).set(data);
+
+    res.send();
+  }
+  catch (error) {
+    console.log(error);
+    res.status(400).send();
+  }
+});
 
 
-export const getUserRanking = functions.https.onRequest(async (req, res) => {
-
+export const getUserRanking = functions.https.onRequest(async (_req, res) => {
   let users: models.User[] = [];
+
   admin.firestore().collection("usuarios")
     .where("pontuacao", ">", 0).orderBy("pontuacao", "desc")
     .get()
@@ -147,4 +175,27 @@ export const getUserRanking = functions.https.onRequest(async (req, res) => {
     res.status(400).send();
   });
 
+});
+
+
+export const getCircuitsForUser = functions.https.onRequest(async (req, res) => {
+  const userId = req.body.user_id as String;
+
+  try {
+    const circuits = await admin.firestore()
+      .collection(`usuarios/${userId}/circuitos_andamento`)
+      .where("circuito_finalizado", "==", false)
+      .get();
+
+    let dataToSend: models.Circuit[] = [];
+    circuits.docs.forEach(doc => {
+      const data = doc.data() as models.Circuit;
+      dataToSend = dataToSend.concat(data);
+    })
+
+    res.status(200).send(dataToSend);
+  } catch (error) {
+    console.log(error);
+    res.status(400).send();
+  }
 });
