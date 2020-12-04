@@ -3,6 +3,8 @@ import * as firebase from '@google-cloud/firestore';
 export interface User {
   nome: string,
   pontuacao: number,
+  circuitos_andamento?: CircuitInProgress[],
+  circuitos_adicionados?: firebase.DocumentReference[]
 }
 
 export interface Circuit {

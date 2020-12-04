@@ -34,7 +34,7 @@ export const addCircuitToUser = functions.https.onRequest(async (req, res) => {
     circuitToAdd.id = circuitId;
 
     // Busca todos os macropontos do circuito
-    let promises: Promise<firebase.DocumentSnapshot<firebase.DocumentData>>[] = [];
+    const promises: Promise<firebase.DocumentSnapshot<firebase.DocumentData>>[] = [];
     circuitToAdd.macropontos.forEach(macroponto => {
       const m = admin.firestore().doc(macroponto.path).get();
       promises.push(m);
@@ -161,9 +161,9 @@ export const getUserRanking = functions.https.onRequest(async (_req, res) => {
     .get()
   .then(snap => {
     snap.forEach(doc => {
-      let user: models.User = {
+      const user: models.User = {
         nome: doc.data().nome,
-        pontuacao: doc.data().pontuacao,
+        pontuacao: doc.data().pontuacao
       }
       users = users.concat(user);
     });
